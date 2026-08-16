@@ -44,7 +44,8 @@
   /* HEADER */
   header{ background:var(--cream); position:sticky; top:0; z-index:50; border-bottom:1px solid var(--line); }
   .nav{ display:flex; align-items:center; justify-content:space-between; padding:12px 0; }
-  .logo{ font-family:'Fraunces', serif; font-size:1.3rem; font-weight:600; }
+  .logo{ display:flex; align-items:center; gap:14px; flex-shrink:0; font-family:'Fraunces', serif; font-size:1.3rem; font-weight:600; }
+  .logo::after{ content:"Nazik\A ÖZÇELİK"; white-space:pre; color:#164542; font-family:'Fraunces',serif; font-size:1.05rem; font-weight:500; line-height:1.12; letter-spacing:.045em; }
   .logo img{ content:url('logo.png'); width:auto; max-width:260px; object-fit:contain; }
   .logo em{ font-style:italic; color:var(--coral); }
   .nav-links{ display:flex; gap:28px; font-size:0.9rem; font-weight:500; }
