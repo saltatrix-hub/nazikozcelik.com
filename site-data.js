@@ -59,16 +59,38 @@
   };
 
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function validateData(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('İçerik dosyası geçerli değil.');
+    const data = {
+      general: Object.assign({}, defaults.general, value.general && typeof value.general === 'object' ? value.general : {}),
+      about: Array.isArray(value.about) ? value.about : clone(defaults.about),
+      experience: Array.isArray(value.experience) ? value.experience : clone(defaults.experience),
+      education: Array.isArray(value.education) ? value.education : clone(defaults.education),
+      projects: Array.isArray(value.projects) ? value.projects : clone(defaults.projects),
+      videos: Array.isArray(value.videos) ? value.videos : clone(defaults.videos),
+      services: Array.isArray(value.services) ? value.services : clone(defaults.services),
+      contact: Object.assign({}, defaults.contact, value.contact && typeof value.contact === 'object' ? value.contact : {})
+    };
+    data.about = data.about.map(item => String(item || '').trim()).filter(Boolean);
+    ['experience', 'education', 'projects', 'videos', 'services'].forEach(key => {
+      data[key] = data[key].filter(item => item && typeof item === 'object').map(item => Object.assign({}, item));
+    });
+    data.contact.whatsapp = String(data.contact.whatsapp || '').replace(/\D/g, '');
+    return data;
+  }
   function getData() {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      return saved && typeof saved === 'object' ? Object.assign(clone(defaults), saved) : clone(defaults);
+      return saved && typeof saved === 'object' ? validateData(saved) : clone(defaults);
     } catch (_) { return clone(defaults); }
   }
-  function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+  function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(validateData(data))); }
   function resetData() { localStorage.removeItem(STORAGE_KEY); }
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  }
+  function emphasisHtml(value) {
+    return escapeHtml(value).replace(/&lt;em&gt;([\s\S]*?)&lt;\/em&gt;/gi, '<em>$1</em>');
   }
   function timeline(items) {
     return items.map(item => `<div class="tl-item"><div class="tl-year">${escapeHtml(item.date)}</div><div class="tl-content"><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.detail)}</p></div></div>`).join('');
@@ -81,7 +103,7 @@
   function renderSite(data) {
     const q = selector => document.querySelector(selector);
     if (q('.hero-copy .eyebrow')) q('.hero-copy .eyebrow').textContent = data.general.eyebrow;
-    if (q('.hero-copy h1')) q('.hero-copy h1').innerHTML = data.general.heroTitle;
+    if (q('.hero-copy h1')) q('.hero-copy h1').innerHTML = emphasisHtml(data.general.heroTitle);
     if (q('.hero-copy > p')) q('.hero-copy > p').textContent = data.general.heroText;
     if (q('.about-text h2')) q('.about-text h2').textContent = data.general.aboutTitle;
     const about = q('.about-text');
@@ -103,14 +125,14 @@
     if (serviceGrid) serviceGrid.innerHTML = data.services.map(item => `<div class="service-card"><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.text)}</p><a href="#iletisim" class="link">Görüşme talep et →</a></div>`).join('');
 
     document.querySelectorAll('a[href*="wa.me/"]').forEach(link => { link.href = `https://wa.me/${data.contact.whatsapp}` + (link.href.includes('?text=') ? '?text=Merhaba%2C%20randevu%20olu%C5%9Fturmak%20istiyorum.' : ''); });
-    document.querySelectorAll('a[href*="saglikca.com.tr/"]').forEach(link => link.href = data.contact.saglikca);
+    document.querySelectorAll('a[href*="saglikca.com.tr/"]').forEach(link => { link.href = data.contact.saglikca || '#iletisim'; link.hidden = !data.contact.saglikca; });
     const info = document.querySelectorAll('#iletisim .info-line');
     if (info[0]) info[0].querySelector('span:last-child').textContent = data.contact.location;
-    if (info[1]) { const a = info[1].querySelector('a'); if (a) a.textContent = data.contact.phoneDisplay; }
+    if (info[1]) { const a = info[1].querySelector('a'); if (a) { a.textContent = data.contact.phoneDisplay; a.href = `tel:+${data.contact.whatsapp}`; } }
     if (info[3]) info[3].querySelector('span:last-child').textContent = data.contact.hours;
     window.NazikSiteData = data;
   }
 
-  window.NazikCMS = { STORAGE_KEY, defaults: clone(defaults), getData, saveData, resetData, renderSite, youtubeId };
+  window.NazikCMS = { STORAGE_KEY, defaults: clone(defaults), getData, saveData, resetData, renderSite, youtubeId, validateData };
   if (document.body && !document.body.classList.contains('admin-page')) renderSite(getData());
 })();
